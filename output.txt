@@ -1,0 +1,47 @@
+uv run main.py --quantize 4bit
+Loading google/gemma-4-E2B-it [int4 (nf4, double quant)] ...
+config.json: 4.95kB [00:00, ?B/s]
+model.safetensors: 100%|██████████████████████████████████████████████████████████| 10.2G/10.2G [04:35<00:00, 37.2MB/s]
+Traceback (most recent call last):
+  File "C:\Users\Aym_s\projects\github\gemma-study\main.py", line 136, in <module>
+    main()
+  File "C:\Users\Aym_s\projects\github\gemma-study\main.py", line 98, in main
+    pipe = pipeline(
+           ^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\pipelines\__init__.py", line 801, in pipeline
+    model = load_model(
+            ^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\pipelines\base.py", line 268, in load_model
+    raise ValueError(
+ValueError: Could not load model google/gemma-4-E2B-it with any of the following classes: (<class 'transformers.models.auto.modeling_auto.AutoModelForCausalLM'>, <class 'transformers.models.gemma4.modeling_gemma4.Gemma4ForConditionalGeneration'>). See the original errors:
+
+while loading with AutoModelForCausalLM, an error is thrown:
+Traceback (most recent call last):
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\pipelines\base.py", line 232, in load_model
+    model = model_class.from_pretrained(model, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\models\auto\auto_factory.py", line 394, in from_pretrained
+    return model_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\modeling_utils.py", line 4190, in from_pretrained
+    device_map = _get_device_map(model, device_map, max_memory, hf_quantizer)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\integrations\accelerate.py", line 373, in _get_device_map
+    hf_quantizer.validate_environment(device_map=device_map)
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\quantizers\quantizer_bnb_4bit.py", line 74, in validate_environment
+    raise ValueError(
+ValueError: Some modules are dispatched on the CPU or the disk. Make sure you have enough GPU RAM to fit the quantized model. If you want to dispatch the model on the CPU or the disk while keeping these modules in 32-bit, you need to set `llm_int8_enable_fp32_cpu_offload=True` and pass a custom `device_map` to `from_pretrained`. Check https://huggingface.co/docs/transformers/main/en/main_classes/quantization#offload-between-cpu-and-gpu for more details.
+
+while loading with Gemma4ForConditionalGeneration, an error is thrown:
+Traceback (most recent call last):
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\pipelines\base.py", line 232, in load_model
+    model = model_class.from_pretrained(model, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\modeling_utils.py", line 4190, in from_pretrained
+    device_map = _get_device_map(model, device_map, max_memory, hf_quantizer)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\integrations\accelerate.py", line 373, in _get_device_map
+    hf_quantizer.validate_environment(device_map=device_map)
+  File "C:\Users\Aym_s\projects\github\gemma-study\.venv\Lib\site-packages\transformers\quantizers\quantizer_bnb_4bit.py", line 74, in validate_environment
+    raise ValueError(
+ValueError: Some modules are dispatched on the CPU or the disk. Make sure you have enough GPU RAM to fit the quantized model. If you want to dispatch the model on the CPU or the disk while keeping these modules in 32-bit, you need to set `llm_int8_enable_fp32_cpu_offload=True` and pass a custom `device_map` to `from_pretrained`. Check https://huggingface.co/docs/transformers/main/en/main_classes/quantization#offload-between-cpu-and-gpu for more details.
