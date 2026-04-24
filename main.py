@@ -1,3 +1,8 @@
+"""
+uv run main.py --quantize 4bit --device cpu
+!uv run main.py --quantize 8bit --device gpu
+"""
+
 import argparse
 import time
 
@@ -61,9 +66,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--quantize",
-        choices=["4bit", "none"],
+        choices=["4bit", "8bit", "none"],
         default="none",
-        help="Load model in 4-bit quantization",
+        help="Quantization: 4bit (nf4), 8bit (int8), or none",
     )
     parser.add_argument(
         "--device",
@@ -90,12 +95,19 @@ def main():
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_compute_dtype=compute_dtype,
-            bnb_4bit_use_double_quant=True,            # nested quantization saves ~0.4 bits/param
-            bnb_4bit_quant_type="nf4",                 # NormalFloat4 is optimal for LLM weights
+            bnb_4bit_use_double_quant=True,                # nested quantization saves ~0.4 bits/param
+            bnb_4bit_quant_type="nf4",                     # NormalFloat4 is optimal for LLM weights
             llm_int8_enable_fp32_cpu_offload=not use_gpu,  # required for CPU-only inference
         )
-        dtype = None  # bitsandbytes controls the dtype
+        dtype = None
         label = "int4 (nf4, double quant)"
+    elif args.quantize == "8bit":
+        quant_config = BitsAndBytesConfig(
+            load_in_8bit=True,
+            llm_int8_enable_fp32_cpu_offload=not use_gpu,  # required for CPU-only inference
+        )
+        dtype = None
+        label = "int8"
     else:
         quant_config = None
         # fp16 is only numerically stable on CUDA; CPU requires bfloat16
