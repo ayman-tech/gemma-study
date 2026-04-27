@@ -112,7 +112,7 @@ uv run main.py --model vit --device gpu --iterations 100
 |---|---|---|
 | `none` | `bfloat16` (CPU) / `float16` (GPU) | Highest accuracy |
 | `4bit` | NF4 + double quantization | Lowest memory, good quality |
-> **Note:** 4-bit mode uses NF4 + double quantization and automatically enables CPU offload when `--device cpu` is used.
+> **Note:** In CPU mode (`--device cpu`), 4-bit loading sets `llm_int8_enable_fp32_cpu_offload=True` in the bitsandbytes config.
 
 ### LLM Output
 
