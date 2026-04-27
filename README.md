@@ -112,7 +112,7 @@ uv run main.py --model vit --device gpu --iterations 100
 |---|---|---|
 | `none` | `bfloat16` (CPU) / `float16` (GPU) | Highest accuracy |
 | `4bit` | NF4 + double quantization | Lowest memory, good quality |
-> **Note:** 4-bit mode uses NF4 + double quantization and enables CPU offload automatically for CPU-only inference.
+> **Note:** 4-bit mode uses NF4 + double quantization and automatically enables CPU offload when `--device cpu` is used.
 
 ### LLM Output
 
