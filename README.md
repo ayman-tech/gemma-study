@@ -83,17 +83,30 @@ uv sync
 ### Running Inference
 
 ```bash
-# Full precision on CPU
-uv run main.py --device cpu
+# Gemma only — CPU, no quantization (default)
+uv run main.py
 
-# 4-bit quantized on CPU
-uv run main.py --quantize 4bit --device cpu
+# Gemma — CPU with 4-bit
+uv run main.py --model gemma --device cpu --quantize 4bit
 
-# 8-bit quantized on GPU
-uv run main.py --quantize 8bit --device gpu
+# Gemma — GPU with 4-bit
+uv run main.py --model gemma --device gpu --quantize 4bit
+
+# ViT only — CPU
+uv run main.py --model vit --device cpu
+
+# ViT only — GPU
+uv run main.py --model vit --device gpu
+
+# Both models — GPU, 4-bit
+uv run main.py --model both --device gpu --quantize 4bit
 
 # Custom prompt
-uv run main.py --quantize 4bit --device gpu --prompt "Explain transformers in one paragraph"
+uv run main.py --model gemma --prompt "Explain attention in one sentence"
+
+# ViT with more iterations
+uv run main.py --model vit --device gpu --iterations 100
+
 ```
 
 ### CLI Arguments
