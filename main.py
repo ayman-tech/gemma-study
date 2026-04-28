@@ -48,6 +48,10 @@ def _build_quant_config(quantize, use_gpu):
     )
 
 
+def _fetch_image(url):
+    return Image.open(io.BytesIO(requests.get(url).content))
+
+
 def _print_mem_load(mem_pre, mem_post, use_gpu):
     print(f"  cpu_ram_mb:      {round(mem_post['cpu_ram_mb'] - mem_pre['cpu_ram_mb'], 2)}")
     if use_gpu:
@@ -97,11 +101,15 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     _print_mem_load(mem_pre_load, mem_post_load, use_gpu)
 
     tokenizer = pipe.tokenizer
-    messages = [{"role": "user", "content": prompt}]
-    prompt_text = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
-    prompt_tokens = len(tokenizer.encode(prompt_text))
+    # Gemma 4 is multimodal — attach a sample image alongside the text prompt
+    if "gemma-4" in model_id.lower():
+        image = _fetch_image("http://images.cocodataset.org/val2017/000000039769.jpg")
+        content = [{"type": "image", "image": image}, {"type": "text", "text": prompt}]
+        print("  mode: multimodal (image + text)")
+    else:
+        content = prompt
+    messages = [{"role": "user", "content": content}]
+    prompt_tokens = len(tokenizer.encode(prompt))
 
     if use_gpu:
         torch.cuda.reset_peak_memory_stats()
@@ -145,7 +153,7 @@ def benchmark_vit(device, quantize, num_iterations=50):
     _clear_memory()
 
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(io.BytesIO(requests.get(url).content))
+    image = _fetch_image(url)
 
     quant_config = _build_quant_config(quantize, use_gpu)
     torch_device = "cuda:0" if use_gpu else "cpu"
