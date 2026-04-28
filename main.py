@@ -69,7 +69,8 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     use_gpu = device == "gpu"
 
     quant_config = _build_quant_config(quantize, use_gpu)
-    dtype = None if quant_config else (torch.float16 if use_gpu else torch.bfloat16)
+    # Gemma models are trained in bfloat16; fp16's narrower range causes NaN in sampling
+    dtype = None if quant_config else torch.bfloat16
     label = "int4 (nf4, double quant)" if quantize == "4bit" else str(dtype)
 
     print(f"\n{'='*60}")
@@ -197,8 +198,8 @@ def benchmark_vit(device, quantize, num_iterations=50):
 
     print(f"\n--- Inference metrics ---")
     print(f"  throughput_img_per_s:{round(num_iterations / total_time, 2)}")
-    print(f"  avg_latency_ms:      {round(np.mean(latencies) * 1000, 2)}")
-    print(f"  p95_latency_ms:      {round(np.percentile(latencies, 95) * 1000, 2)}")
+    print(f"  avg_latency_ms:      {round(float(np.mean(latencies)) * 1000, 2)}")
+    print(f"  p95_latency_ms:      {round(float(np.percentile(latencies, 95)) * 1000, 2)}")
     _print_mem_inference(mem_before, mem_after, use_gpu)
 
     del pipe
