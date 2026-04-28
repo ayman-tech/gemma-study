@@ -65,9 +65,8 @@ def _print_mem_inference(mem_before, mem_after, use_gpu):
 # Gemma benchmark
 # ---------------------------------------------------------------------------
 
-def benchmark_gemma(device, quantize, prompt, max_new_tokens=200):
+def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", max_new_tokens=200):
     use_gpu = device == "gpu"
-    model_id = "google/gemma-4-E2B-it"
 
     quant_config = _build_quant_config(quantize, use_gpu)
     dtype = None if quant_config else (torch.float16 if use_gpu else torch.bfloat16)
@@ -231,6 +230,11 @@ def main():
         help="Device to run on (default: cpu)",
     )
     parser.add_argument(
+        "--model-id",
+        default="google/gemma-4-E2B-it",
+        help="HuggingFace model ID for Gemma (default: google/gemma-4-E2B-it)",
+    )
+    parser.add_argument(
         "--prompt",
         default="What is the capital of France?",
         help="Prompt for the Gemma model",
@@ -247,7 +251,7 @@ def main():
         raise SystemExit("--device gpu requested but no CUDA GPU is available.")
 
     if args.model in ("gemma", "both"):
-        benchmark_gemma(args.device, args.quantize, args.prompt)
+        benchmark_gemma(args.device, args.quantize, args.prompt, args.model_id)
 
     if args.model in ("vit", "both"):
         benchmark_vit(args.device, args.quantize, args.iterations)

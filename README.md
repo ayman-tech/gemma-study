@@ -29,7 +29,7 @@ gemma-study/
 ## Features
 
 - Run text generation with `google/gemma-4-E2B-it`
-- Three quantization modes: **4-bit (NF4)**, **8-bit (int8)**, or **full precision**
+- Two quantization modes: **4-bit (NF4)** or **full precision** (bf16/fp16)
 - CPU and GPU (CUDA) support for both LLM and vision models
 - ViT image classification benchmark (`google/vit-base-patch16-224`)
 - Detailed metrics: latency, throughput, token counts, CPU/GPU memory usage
@@ -107,25 +107,29 @@ uv run main.py --model gemma --prompt "Explain attention in one sentence"
 # ViT with more iterations
 uv run main.py --model vit --device gpu --iterations 100
 
+# Use a different Gemma model
+uv run main.py --model gemma --model-id google/gemma-3-270m-it --device cpu
 ```
 
 ### CLI Arguments
 
 | Argument | Choices | Default | Description |
 |---|---|---|---|
-| `--quantize` | `4bit`, `8bit`, `none` | `none` | Quantization mode |
+| `--model` | `gemma`, `vit`, `both` | `gemma` | Which benchmark to run |
+| `--model-id` | any HF model ID | `google/gemma-4-E2B-it` | Gemma model to load |
+| `--quantize` | `4bit`, `none` | `none` | Quantization mode |
 | `--device` | `cpu`, `gpu` | `cpu` | Compute device |
-| `--prompt` | any string | `"What is the capital of France?"` | Input prompt |
+| `--prompt` | any string | `"What is the capital of France?"` | Input prompt (Gemma only) |
+| `--iterations` | any int | `50` | Inference iterations (ViT only) |
 
 ### Quantization Modes
 
-| Mode | Format | Best For |
-|---|---|---|
-| `none` | `bfloat16` (CPU) / `float16` (GPU) | Highest accuracy |
-| `4bit` | NF4 + double quantization | Lowest memory, good quality |
-| `8bit` | int8 | Balanced memory/quality |
+| Mode | Format | CPU | GPU | Notes |
+|---|---|---|---|---|
+| `none` | `bfloat16` (CPU) / `float16` (GPU) | Yes | Yes | Highest accuracy, baseline |
+| `4bit` | NF4 + double quantization | Yes | Yes | Lowest memory, good quality |
 
-> **Note:** 4-bit and 8-bit modes require `llm_int8_enable_fp32_cpu_offload=True` for CPU-only inference.
+> **Note:** 8-bit (int8) is intentionally excluded — `bitsandbytes` int8 is CUDA-only and does not run on CPU.
 
 ### LLM Output
 
@@ -231,9 +235,9 @@ else:
 | `google/gemma-4-E2B-it` | Text generation | [HuggingFace](https://huggingface.co/google/gemma-4-E2B-it) |
 | `google/vit-base-patch16-224` | Image classification | [HuggingFace](https://huggingface.co/google/vit-base-patch16-224) |
 
-To swap the Gemma model, edit `main.py`:
-```python
-model_id = "google/gemma-3-270m-it"  # lighter alternative
+To swap the Gemma model, pass `--model-id` at the command line:
+```bash
+uv run main.py --model gemma --model-id google/gemma-3-270m-it
 ```
 
 ---
