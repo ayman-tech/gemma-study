@@ -69,7 +69,7 @@ def _print_mem_inference(mem_before, mem_after, use_gpu):
 # Gemma benchmark
 # ---------------------------------------------------------------------------
 
-def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", max_new_tokens=200):
+def benchmark_gemma(device, quantize, model_id="google/gemma-4-E2B-it", max_new_tokens=200):
     use_gpu = device == "gpu"
 
     quant_config = _build_quant_config(quantize, use_gpu)
@@ -108,12 +108,14 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
 
     tokenizer = pipe.tokenizer
     if is_gemma4:
+        prompt = "What do you see in this image?"
         image_url = "http://images.cocodataset.org/val2017/000000039769.jpg"
         content = [
             {"type": "image", "image": image_url},
             {"type": "text", "text": prompt},
         ]
     else:
+        prompt = "What is the capital of France?"
         content = prompt
 
     messages = [{"role": "user", "content": content}]
@@ -130,8 +132,15 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     latency_s = time.perf_counter() - t0
     mem_after = _mem_snapshot(use_gpu)
 
-    output_text = result[0]["generated_text"] if is_gemma4 \
-        else result[0]["generated_text"][-1]["content"]
+    if is_gemma4:
+        raw = result[0]["generated_text"]
+        # Decode through tokenizer to strip Gemma 4 special tokens (e.g. <turn|>)
+        output_text = tokenizer.decode(
+            tokenizer.encode(raw, add_special_tokens=False),
+            skip_special_tokens=True,
+        ).strip()
+    else:
+        output_text = result[0]["generated_text"][-1]["content"]
     output_tokens = len(tokenizer.encode(output_text))
 
     print(f"\n--- Output ---")
@@ -254,11 +263,6 @@ def main():
         help="HuggingFace model ID for Gemma (default: google/gemma-4-E2B-it)",
     )
     parser.add_argument(
-        "--prompt",
-        default="What is the capital of France?",
-        help="Prompt for the Gemma model",
-    )
-    parser.add_argument(
         "--iterations",
         type=int,
         default=50,
@@ -270,7 +274,7 @@ def main():
         raise SystemExit("--device gpu requested but no CUDA GPU is available.")
 
     if args.model in ("gemma", "both"):
-        benchmark_gemma(args.device, args.quantize, args.prompt, args.model_id)
+        benchmark_gemma(args.device, args.quantize, args.model_id)
 
     if args.model in ("vit", "both"):
         benchmark_vit(args.device, args.quantize, args.iterations)
