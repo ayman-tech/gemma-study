@@ -77,8 +77,14 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     dtype = None if quant_config else torch.bfloat16
     label = "int4 (nf4, double quant)" if quantize == "4bit" else str(dtype)
 
+    # Gemma 4 is multimodal: use image-text-to-text task with URL-based image content
+    is_gemma4 = "gemma-4" in model_id.lower()
+    task = "image-text-to-text" if is_gemma4 else "text-generation"
+    mode = "multimodal (image + text)" if is_gemma4 else "text-only"
+
     print(f"\n{'='*60}")
-    print(f"  Gemma benchmark | device={device.upper()} | quant={label}")
+    print(f"  Gemma benchmark | device={device.upper()} | quant={label} | mode={mode}")
+    print(f"  model: {model_id}")
     print(f"{'='*60}")
     _clear_memory()
 
@@ -86,7 +92,7 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     t_load = time.perf_counter()
 
     pipe = pipeline(
-        "text-generation",
+        task,
         model=model_id,
         device_map="cuda" if use_gpu else "cpu",
         dtype=dtype,
@@ -101,13 +107,15 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     _print_mem_load(mem_pre_load, mem_post_load, use_gpu)
 
     tokenizer = pipe.tokenizer
-    # Gemma 4 is multimodal — attach a sample image alongside the text prompt
-    if "gemma-4" in model_id.lower():
-        image = _fetch_image("http://images.cocodataset.org/val2017/000000039769.jpg")
-        content = [{"type": "image", "image": image}, {"type": "text", "text": prompt}]
-        print("  mode: multimodal (image + text)")
+    if is_gemma4:
+        image_url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+        content = [
+            {"type": "image", "image": image_url},
+            {"type": "text", "text": prompt},
+        ]
     else:
         content = prompt
+
     messages = [{"role": "user", "content": content}]
     prompt_tokens = len(tokenizer.encode(prompt))
 
@@ -116,12 +124,14 @@ def benchmark_gemma(device, quantize, prompt, model_id="google/gemma-4-E2B-it", 
     mem_before = _mem_snapshot(use_gpu)
     t0 = time.perf_counter()
 
-    result = pipe(messages, max_new_tokens=max_new_tokens)
+    result = pipe(text=messages, max_new_tokens=max_new_tokens, return_full_text=False) \
+        if is_gemma4 else pipe(messages, max_new_tokens=max_new_tokens)
 
     latency_s = time.perf_counter() - t0
     mem_after = _mem_snapshot(use_gpu)
 
-    output_text = result[0]["generated_text"][-1]["content"]
+    output_text = result[0]["generated_text"] if is_gemma4 \
+        else result[0]["generated_text"][-1]["content"]
     output_tokens = len(tokenizer.encode(output_text))
 
     print(f"\n--- Output ---")
