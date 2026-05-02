@@ -271,8 +271,6 @@ def main():
 
     if args.device == "gpu" and not torch.cuda.is_available():
         raise SystemExit("--device gpu requested but no CUDA GPU is available.")
-    if args.quantize == "4bit" and args.device != "gpu":
-        raise SystemExit("QLoRA (--quantize 4bit) requires --device gpu.")
 
     finetune_vit(device=args.device, quantize=args.quantize, epochs=args.epochs)
 
