@@ -53,7 +53,7 @@ def _clear_memory():
         torch.cuda.reset_peak_memory_stats()
 
 
-def _build_quant_config(quantize, use_gpu):
+def _build_quant_config(quantize, use_gpu, skip_modules=None):
     if quantize != "4bit":
         return None
     return BitsAndBytesConfig(
@@ -62,6 +62,7 @@ def _build_quant_config(quantize, use_gpu):
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
         llm_int8_enable_fp32_cpu_offload=not use_gpu,
+        llm_int8_skip_modules=skip_modules,
     )
 
 
@@ -152,7 +153,7 @@ def finetune_vit(device, quantize, epochs):
     )
 
     if is_qlora:
-        quant_config = _build_quant_config("4bit", use_gpu)
+        quant_config = _build_quant_config("4bit", use_gpu, skip_modules=["classifier"])
         model = ViTForImageClassification.from_pretrained(
             "google/vit-base-patch16-224",
             config=config,
