@@ -179,9 +179,13 @@ def finetune_vit(device, quantize, epochs):
         target_modules=["query", "value"],
         lora_dropout=0.1,
         bias="none",
-        modules_to_save=["classifier"],  # head is randomly re-init; must be fully trained
     )
     model = get_peft_model(model, lora_config)
+    # classifier head is randomly re-init (1000→N classes); unfreeze it directly
+    # instead of modules_to_save to avoid PEFT wrapper reshaping logits incorrectly
+    for name, param in model.named_parameters():
+        if "classifier" in name:
+            param.requires_grad_(True)
     model.print_trainable_parameters()
 
     # --- Training ---
