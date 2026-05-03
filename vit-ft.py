@@ -21,6 +21,8 @@ import os
 import threading
 import time
 
+import matplotlib.pyplot as plt
+import numpy as np
 import psutil
 import torch
 import torch.nn as nn
@@ -97,6 +99,42 @@ def collate_fn(batch):
         "pixel_values": torch.stack([item["pixel_values"] for item in batch]),
         "labels": torch.stack([item["labels"] for item in batch]),
     }
+
+
+def _plot_metrics(output_dir, method, train_times, throughputs, cpu_rams, gpu_rams, losses, val_accs):
+    epochs = list(range(1, len(losses) + 1))
+    metrics = [
+        ("Train Loss",          losses,      "Cross-Entropy Loss", "tab:blue"),
+        ("Validation Accuracy", val_accs,    "Accuracy",           "tab:green"),
+        ("Train Time / Epoch",  train_times, "Seconds",            "tab:orange"),
+        ("Throughput",          throughputs, "Samples / s",        "tab:purple"),
+        ("Peak CPU RAM",        cpu_rams,    "MB",                 "tab:red"),
+    ]
+    if gpu_rams:
+        metrics.append(("Peak GPU RAM", gpu_rams, "MB", "tab:brown"))
+
+    ncols = 2
+    nrows = (len(metrics) + 1) // 2
+    fig, axes = plt.subplots(nrows, ncols, figsize=(10, 4 * nrows))
+    axes = axes.flatten()
+
+    for i, (title, data, ylabel, color) in enumerate(metrics):
+        ax = axes[i]
+        ax.plot(epochs, data, marker="o", linewidth=1.5, markersize=4, color=color)
+        ax.set_title(title, fontsize=11)
+        ax.set_xlabel("Epoch", fontsize=9)
+        ax.set_ylabel(ylabel, fontsize=9)
+        ax.grid(True, alpha=0.3)
+
+    for j in range(len(metrics), len(axes)):
+        axes[j].set_visible(False)
+
+    fig.suptitle(f"ViT Fine-tuning ({method})", fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    path = os.path.join(output_dir, "metrics.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Plot saved to {path}")
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +241,9 @@ def finetune_vit(device, quantize, epochs):
 
     print(f"\nStarting training for {epochs} epochs...")
 
+    train_times, throughputs, cpu_rams, gpu_rams = [], [], [], []
+    train_losses, val_accs = [], []
+
     for epoch in range(1, epochs + 1):
         model.train()
 
@@ -251,17 +292,33 @@ def finetune_vit(device, quantize, epochs):
                 total_val += labels.size(0)
         val_acc = correct / total_val
 
-        print(f"\n--- Epoch {epoch}/{epochs} ---")
-        print(f"  train_time_s:      {round(epoch_time_s, 2)}")
-        print(f"  throughput_samp_s: {round(throughput, 2)}")
-        print(f"  peak_cpu_ram_mb:   {round(peak_cpu_mb, 2)}")
+        train_times.append(epoch_time_s)
+        throughputs.append(throughput)
+        cpu_rams.append(peak_cpu_mb)
+        train_losses.append(avg_loss)
+        val_accs.append(val_acc)
         if use_gpu:
-            print(f"  peak_gpu_ram_mb:   {round(torch.cuda.max_memory_allocated() / 1024**2, 2)}")
-        print(f"  train_loss:        {round(avg_loss, 4)}")
-        print(f"  val_accuracy:      {round(val_acc, 4)}")
+            gpu_rams.append(torch.cuda.max_memory_allocated() / 1024**2)
 
-    # --- Save ---
+        gpu_str = f" | gpu_ram={gpu_rams[-1]:.0f}MB" if use_gpu else ""
+        print(f"  Epoch {epoch:3d}/{epochs} | loss={avg_loss:.4f} | val_acc={val_acc:.4f} | t={epoch_time_s:.1f}s{gpu_str}")
+
+    # --- Summary ---
+    print(f"\n{'='*60}")
+    print(f"  Summary ({method} | {device.upper()} | {epochs} epochs)")
+    print(f"{'='*60}")
+    print(f"  avg_train_time_s:   {round(float(np.mean(train_times)), 2)}")
+    print(f"  avg_throughput_s:   {round(float(np.mean(throughputs)), 2)}")
+    print(f"  avg_cpu_ram_mb:     {round(float(np.mean(cpu_rams)), 2)}")
+    if use_gpu:
+        print(f"  avg_gpu_ram_mb:     {round(float(np.mean(gpu_rams)), 2)}")
+    print(f"  final_train_loss:   {round(train_losses[-1], 4)}")
+    print(f"  final_val_accuracy: {round(val_accs[-1], 4)}")
+
+    # --- Plot & Save ---
     os.makedirs(output_dir, exist_ok=True)
+    _plot_metrics(output_dir, method, train_times, throughputs, cpu_rams,
+                  gpu_rams if use_gpu else None, train_losses, val_accs)
     model.save_pretrained(output_dir)
     processor.save_pretrained(output_dir)
     print(f"\nAdapter weights saved to {output_dir}/")
