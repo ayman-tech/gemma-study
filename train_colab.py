@@ -287,7 +287,6 @@ sft_config = SFTConfig(
     use_cpu=NO_CUDA,
     dataloader_pin_memory=HAS_GPU,
     dataloader_num_workers=NUM_WORKERS,
-    group_by_length=True,
 )
 
 _num_samples = len(formatted_dataset)
