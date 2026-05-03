@@ -145,7 +145,7 @@ def finetune_vit(device, quantize, epochs):
     use_gpu = device == "gpu"
     is_qlora = quantize == "4bit"
     method = "QLoRA" if is_qlora else "LoRA"
-    output_dir = "./output/vit-qlora" if is_qlora else "./output/vit-lora"
+    output_dir = f"./output/{device}_{method.lower()}"
     torch_device = "cuda:0" if use_gpu else "cpu"
 
     print(f"\n{'='*60}")
