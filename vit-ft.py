@@ -23,6 +23,7 @@ import time
 
 import psutil
 import torch
+import torch.nn as nn
 from datasets import load_dataset
 from peft import LoraConfig, get_peft_model
 from torch.utils.data import DataLoader
@@ -172,6 +173,12 @@ def finetune_vit(device, quantize, epochs):
             torch_dtype=torch.float32,
         )
         model = model.to(torch_device)
+
+    # ignore_mismatched_sizes doesn't reliably reinit the head when quantization_config
+    # + device_map are used — the pretrained 1000-class weights get loaded, causing
+    # pooled_logits.view(-1, num_labels) to reshape (16,1000) → (8000,2) and crash.
+    # Explicit reinit guarantees the right output size in both paths.
+    model.classifier = nn.Linear(model.config.hidden_size, num_labels).to(torch_device)
 
     lora_config = LoraConfig(
         r=8,
