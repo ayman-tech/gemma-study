@@ -218,8 +218,9 @@ lora_config = LoraConfig(
 print("      LoRA config ready")
 
 # =============================================================================
-# 9. MODEL INIT KWARGS — passed to SFTTrainer, not loaded manually
+# 9. LOAD MODEL
 # =============================================================================
+print("      Loading model ...")
 if args.quant == "int4":
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -227,19 +228,23 @@ if args.quant == "int4":
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
     )
-    model_kwargs = {
-        "quantization_config": bnb_config,
-        "device_map": DEVICE_MAP,
-        "low_cpu_mem_usage": True,
-    }
-    print("      INT4 quantization config ready")
-else:  # bf16
-    model_kwargs = {
-        "torch_dtype": COMPUTE_DTYPE,
-        "device_map": DEVICE_MAP,
-        "low_cpu_mem_usage": True,
-    }
-    print(f"      BF16 model config ready (dtype={COMPUTE_DTYPE})")
+    from transformers import AutoModelForCausalLM
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        quantization_config=bnb_config,
+        device_map=DEVICE_MAP,
+        low_cpu_mem_usage=True,
+    )
+    print("      Model loaded with INT4 (nf4)")
+else:
+    from transformers import AutoModelForCausalLM
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        torch_dtype=COMPUTE_DTYPE,
+        device_map=DEVICE_MAP,
+        low_cpu_mem_usage=True,
+    )
+    print(f"      Model loaded with {COMPUTE_DTYPE}")
 
 # =============================================================================
 # 10. DATASET
@@ -298,11 +303,10 @@ ram_monitor  = PeakRAMMonitor()
 # SFTTrainer loads the model, applies LoRA, and trains — all internally
 # ─────────────────────────────────────────────────────────────────────────────
 trainer = SFTTrainer(
-    model=MODEL_ID,
-    model_init_kwargs=model_kwargs,
+    model=model,                    # ← loaded model object
     train_dataset=formatted_dataset,
     args=sft_config,
-    peft_config=lora_config,
+    peft_config=lora_config,        # ← SFTTrainer applies LoRA internally
     processing_class=tokenizer,
     callbacks=[epoch_cb],
 )
