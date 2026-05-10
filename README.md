@@ -241,4 +241,4 @@ uv run main.py --model gemma --model-id google/gemma-3-270m-it
 
 ## License
 
-Not specified. Contact the repository author for usage terms.
+General Public License v3.0
