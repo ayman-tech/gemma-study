@@ -59,7 +59,7 @@ gemma-study/
 
 ## Docker Usage
 
-This project has been fully containerized and the image is available on Docker Hub. 
+This project has been fully containerized and the image is available on Docker Hub: [Docker Hub Repo Link](https://hub.docker.com/repository/docker/55rahul55/gemma-study/general)
 
 To pull and run the pre-built image with the default Gemma CPU benchmark:
 
