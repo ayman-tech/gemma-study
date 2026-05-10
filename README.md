@@ -57,6 +57,31 @@ gemma-study/
 
 ---
 
+## Docker Usage
+
+This project has been fully containerized and the image is available on Docker Hub. 
+
+To pull and run the pre-built image with the default Gemma CPU benchmark:
+
+```bash
+docker pull 55rahul55/gemma-study:latest
+docker run -it 55rahul55/gemma-study
+```
+
+You can also pass arguments directly to the container just as you would to `main.py`:
+
+```bash
+# Run the ViT model benchmark (CPU)
+docker run -it 55rahul55/gemma-study --model vit --device cpu
+
+# Run with GPU support (requires NVIDIA Container Toolkit)
+docker run --gpus all -it 55rahul55/gemma-study --model gemma --device gpu --quantize 4bit
+```
+
+For more details, please see [Docker_README.md](Docker_README.md).
+
+---
+
 ## Usage (`main.py`)
 
 ### Installation
